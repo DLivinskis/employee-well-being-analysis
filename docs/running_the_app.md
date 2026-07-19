@@ -17,6 +17,8 @@ Once it's up: API docs at `http://localhost:8000/docs`, the app at `http://local
 
 No local Python environment, no manual training step, no manual seeding — a fresh clone with nothing but Docker installed gets a fully working app from this one command. See `docs/architecture_and_design.md`'s Packaging section for how the four services fit together.
 
+> Tested on macOS 14.7.2 (Darwin 23.6.0, arm64), Docker 27.4.0, Docker Compose v2.31.0-desktop.2.
+
 ## Running locally without Docker
 
 Useful for iterating on one piece (e.g. the frontend) without rebuilding images. Two ways to install dependencies — with `uv` (how the project is developed) or with plain `pip` + `requirements.txt`.
