@@ -67,8 +67,10 @@ employee-well-being-analysis/
 │       ├── predict.py            # POST /predict
 │       └── analysis.py           # GET /analysis/*
 ├── frontend/
-│   ├── Home.py                   # Streamlit entry point / landing page
-│   ├── api_client.py             # thin wrapper around requests to the API
+│   ├── Home.py                   # entry point: landing page
+│   ├── api_client.py             # entry point: ApiClient, wraps requests to the API
+│   ├── helpers/
+│   │   └── model_analysis.py     # ModelAnalysisView: shared confusion-matrix/ROC rendering
 │   └── pages/
 │       ├── 1_Descriptive_Analysis.py
 │       ├── 2_Logistic_Model_Features.py
@@ -119,12 +121,15 @@ employee-well-being-analysis/
 - [x] `main.py`: `AppStartup` class builds the DB (create+seed) and inference service at lifespan startup, attaches both to `app.state`; registers routers.
 
 ### Phase 5 — Streamlit frontend (`frontend/`)
-- [ ] `api_client.py`: thin functions wrapping each API call (`get_employee`, `create_employee`, `predict`, `get_descriptive`, `get_logistic_importance`, `get_tree_importance`), API base URL from an environment variable.
-- [ ] `pages/1_Descriptive_Analysis.py`: charts from `/analysis/descriptive`.
-- [ ] `pages/2_Logistic_Model_Features.py`: coefficients + confusion matrix + ROC/AUC from `/analysis/logistic-importance`.
-- [ ] `pages/3_Tree_Model_Features.py`: importances + confusion matrix + ROC/AUC from `/analysis/tree-importance`.
-- [ ] `pages/4_Predict.py`: client-ID lookup (pre-fills form via `/employees/{id}`, offers to save via `POST /employees` if the ID doesn't exist yet) or manual entry, both ending in a call to `/predict`.
-- [ ] `Home.py`: landing page linking to the four pages.
+- [x] `api_client.py`: `ApiClient` class wrapping each API call (`get_employee`, `create_employee`, `predict`, `get_descriptive`, `get_logistic_importance`, `get_tree_importance`), API base URL from the `API_BASE_URL` environment variable.
+- [x] `helpers/model_analysis.py`: `ModelAnalysisView` — shared confusion-matrix/ROC-AUC rendering, since it's identical between the logistic and tree pages (added beyond the original plan to avoid duplicating that rendering code).
+- [x] `pages/1_Descriptive_Analysis.py`: target/feature distributions + feature-vs-target breakdowns from `/analysis/descriptive`.
+- [x] `pages/2_Logistic_Model_Features.py`: per-class coefficients (`LogisticFeaturesView`, subclasses `ModelAnalysisView`) + confusion matrix + ROC/AUC from `/analysis/logistic-importance`.
+- [x] `pages/3_Tree_Model_Features.py`: permutation importances (`TreeFeaturesView`, subclasses `ModelAnalysisView`) + confusion matrix + ROC/AUC from `/analysis/tree-importance`.
+- [x] `pages/4_Predict.py`: client-ID lookup (pre-fills form via `/employees/{id}`, offers to save via `POST /employees` if the ID doesn't exist yet) or manual entry, both ending in a call to `/predict`.
+- [x] `Home.py`: landing page linking to the four pages.
+
+Verified with Streamlit's `AppTest` harness (executes each page script for real, against the live API): all four pages plus `Home.py` render with zero exceptions; drove the Predict page's actual submit flow (ID lookup → pre-filled form → submit) end-to-end and got back a real prediction.
 
 ### Phase 6 — Dockerization
 - [ ] `docker/api.Dockerfile`: installs `training`+`api` dependencies, copies `training/` and `api/`, runs `uvicorn api.main:app`.
