@@ -14,33 +14,9 @@ from datetime import datetime
 import pandas as pd
 from sqlalchemy import select
 
-from api.config import APIConfig
+from api.endpoint_helpers.config import APIConfig
 from api.database.connection import Database
 from api.database.models import Employee, TrainedModel
-
-# Maps the CSV's column names to Employee's snake_case attribute names.
-CSV_COLUMN_TO_ATTRIBUTE = {
-    "Employee_ID": "employee_id",
-    "Age": "age",
-    "Gender": "gender",
-    "Job_Role": "job_role",
-    "Industry": "industry",
-    "Years_of_Experience": "years_of_experience",
-    "Work_Location": "work_location",
-    "Hours_Worked_Per_Week": "hours_worked_per_week",
-    "Number_of_Virtual_Meetings": "number_of_virtual_meetings",
-    "Work_Life_Balance_Rating": "work_life_balance_rating",
-    "Stress_Level": "stress_level",
-    "Mental_Health_Condition": "mental_health_condition",
-    "Access_to_Mental_Health_Resources": "access_to_mental_health_resources",
-    "Productivity_Change": "productivity_change",
-    "Social_Isolation_Rating": "social_isolation_rating",
-    "Satisfaction_with_Remote_Work": "satisfaction_with_remote_work",
-    "Company_Support_for_Remote_Work": "company_support_for_remote_work",
-    "Physical_Activity": "physical_activity",
-    "Sleep_Quality": "sleep_quality",
-    "Region": "region",
-}
 
 
 class DatabaseSeeder:
@@ -70,7 +46,8 @@ class DatabaseSeeder:
 
     def _row_to_employee(self, row: pd.Series) -> Employee:
         attributes = {
-            CSV_COLUMN_TO_ATTRIBUTE[column]: value for column, value in row.items()
+            Employee.CSV_COLUMN_TO_ATTRIBUTE[column]: value
+            for column, value in row.items()
         }
         return Employee(**attributes)
 

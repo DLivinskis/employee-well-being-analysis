@@ -45,8 +45,13 @@ employee-well-being-analysis/
 │   └── run_training.py          # entry point: split -> train both -> evaluate -> write artifacts + models-table rows
 ├── api/
 │   ├── __init__.py
-│   ├── main.py                  # FastAPI app + router registration
-│   ├── config.py                # env-based settings (DB URL, model artifact dir)
+│   ├── main.py                  # entry point: FastAPI app + AppStartup + router registration
+│   ├── endpoint_helpers/         # supporting building blocks, not entry points themselves
+│   │   ├── __init__.py
+│   │   ├── config.py             # env-based settings (DB URL, model artifact dir)
+│   │   ├── schemas.py            # Pydantic request/response models
+│   │   ├── dependencies.py       # FastAPI Depends: get_session, get_inference_service
+│   │   └── inference.py          # InferenceService: loads model artifacts, runs prediction
 │   ├── database/
 │   │   ├── __init__.py           # re-exports Database, DatabaseSeeder
 │   │   ├── connection.py         # Database: SQLAlchemy engine/session
@@ -56,9 +61,7 @@ employee-well-being-analysis/
 │   │       ├── base.py           # shared declarative Base
 │   │       ├── employee.py       # Employee ORM model
 │   │       └── trained_model.py  # TrainedModel ORM model
-│   ├── schemas.py                # Pydantic request/response models
-│   ├── inference.py               # loads model artifacts, runs prediction
-│   └── routers/
+│   └── routers/                  # entry points: one router per resource
 │       ├── __init__.py
 │       ├── employees.py          # GET /employees/{employee_id}, POST /employees
 │       ├── predict.py            # POST /predict
@@ -107,12 +110,13 @@ employee-well-being-analysis/
 - [x] `docker-compose.yml`: `db` service only for now (postgres + named volume + healthcheck + port 5432 exposed to the host), added early so seeded data can be checked manually (`psql`, a DB client) before `api`/`frontend` exist. `api`/`frontend` services are added in Phase 6.
 
 ### Phase 4 — FastAPI backend (`api/`)
-- [ ] `schemas.py`: Pydantic models for employee response/create request, predict request/response, and analysis responses (coefficients/importances + confusion matrix + ROC/AUC).
-- [ ] `inference.py`: loads the two serialized pipelines once at startup; exposes a `predict(features) -> {label, class_probabilities}` function per model type used by `/predict`.
-- [ ] `routers/employees.py`: `GET /employees/{employee_id}` (404 if not found) and `POST /employees` (insert a new row, reject on duplicate `Employee_ID`) — this is what makes "predict for an employee outside the original CSV" a real, working path rather than a hypothetical.
-- [ ] `routers/predict.py`: `POST /predict`.
-- [ ] `routers/analysis.py`: `GET /analysis/descriptive` (calls `exploratory_analysis/descriptive_stats.py` against the `employees` table), `GET /analysis/logistic-importance`, `GET /analysis/tree-importance`.
-- [ ] `main.py`: app instance, calls `seed.py` and `inference.py` startup hooks, registers routers.
+- [x] `schemas.py`: Pydantic models for employee response/create request, predict request/response, and analysis responses (coefficients/importances + confusion matrix + ROC/AUC).
+- [x] `dependencies.py`: `get_database`/`get_session`/`get_inference_service` — reads the shared `Database`/`InferenceService` off `app.state` for use with `Depends`.
+- [x] `inference.py`: `InferenceService` — loads the two serialized pipelines once at startup; `predict(model_name, features) -> {label, class_probabilities}` used by `/predict`.
+- [x] `routers/employees.py`: `GET /employees/{employee_id}` (404 if not found) and `POST /employees` (insert a new row, 409 on duplicate `Employee_ID`) — verified end-to-end: inserted a new employee with no target, predicted their satisfaction via `/predict`.
+- [x] `routers/predict.py`: `POST /predict`.
+- [x] `routers/analysis.py`: `GET /analysis/descriptive` (calls `exploratory_analysis/descriptive_stats.py` against the `employees` table), `GET /analysis/logistic-importance`, `GET /analysis/tree-importance`.
+- [x] `main.py`: `AppStartup` class builds the DB (create+seed) and inference service at lifespan startup, attaches both to `app.state`; registers routers.
 
 ### Phase 5 — Streamlit frontend (`frontend/`)
 - [ ] `api_client.py`: thin functions wrapping each API call (`get_employee`, `create_employee`, `predict`, `get_descriptive`, `get_logistic_importance`, `get_tree_importance`), API base URL from an environment variable.

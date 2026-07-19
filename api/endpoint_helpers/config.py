@@ -31,14 +31,14 @@ class APIConfig:
         raw_data_path: Path | None = None,
         artifacts_dir: Path | None = None,
     ) -> None:
-        repo_root = Path(__file__).resolve().parent.parent
+        repo_root = Path(__file__).resolve().parent.parent.parent
         # Default matches docker-compose.yml's `db` service credentials and
         # exposed port, so scripts run on the host (outside a container)
         # connect the same way `docker compose exec` / a local DB client
         # would, without needing DATABASE_URL set for local dev.
         self.database_url = database_url or os.environ.get(
             "DATABASE_URL",
-            "postgresql+psycopg://ewb:ewb@localhost:5432/employee_wellbeing",
+            "postgresql+psycopg://ewb:ewb@localhost:5449/employee_wellbeing",
         )
         self.raw_data_path = raw_data_path or Path(
             os.environ.get(

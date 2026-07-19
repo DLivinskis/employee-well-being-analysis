@@ -12,7 +12,7 @@ from typing import Iterator
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from api.config import APIConfig
+from api.endpoint_helpers.config import APIConfig
 from api.database.models import Base
 
 
