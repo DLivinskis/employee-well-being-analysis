@@ -75,7 +75,8 @@ employee-well-being-analysis/
 │       ├── 1_Descriptive_Analysis.py
 │       ├── 2_Logistic_Model_Features.py
 │       ├── 3_Tree_Model_Features.py
-│       └── 4_Predict.py
+│       ├── 4_Predict.py
+│       └── 5_Metrics_Description.py  # renders training/*.md directly (docker_images/frontend.Dockerfile copies just the .md files, not the training/ package)
 └── docker_images/
     ├── trainer.Dockerfile    # one-shot: trains models, writes data/models/
     ├── api.Dockerfile

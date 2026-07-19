@@ -11,3 +11,7 @@ A data product built on the Kaggle "Remote Work and Mental Health" dataset, expl
 - [Execution Plan](docs/execution_plan.md) — repo structure and task breakdown for implementing the architecture
 - [EDA Findings](docs/eda_findings.md) — data quality notes and feature-vs-target signal strength
 - [Statistics Concepts](exploratory_analysis/statistics_concepts.md) — chi-square and ANOVA explained, as used in `descriptive_stats.py`
+- [Multiclass AUC](training/multiclass_auc.md) — how one-vs-rest ROC/AUC is calculated for the 3-class target, as used in `evaluation.py`
+- [Macro-F1](training/macro_f1.md) — how precision/recall/F1 are averaged across classes, with a worked example, as used in `evaluation.py`
+- [Feature Importance Methods](training/feature_importance_methods.md) — standardized coefficients vs. permutation importance, how to interpret each, and what a negative value means for each
+- [Metrics and Target Encoding Ideas](training/metrics_and_target_encoding_ideas.md) — not-yet-implemented ideas on ordinal target encoding and additional metrics like log loss

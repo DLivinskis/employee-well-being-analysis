@@ -1,7 +1,7 @@
 """
 Streamlit entry point / landing page.
 
-Run with `streamlit run frontend/Home.py`. The four pages under
+Run with `streamlit run frontend/Home.py`. The five pages under
 `frontend/pages/` are auto-discovered by Streamlit's multipage support.
 """
 
@@ -19,3 +19,4 @@ st.page_link("pages/1_Descriptive_Analysis.py", label="📈 Descriptive Analysis
 st.page_link("pages/2_Logistic_Model_Features.py", label="📊 Logistic Model — Top Features")
 st.page_link("pages/3_Tree_Model_Features.py", label="🌳 Tree Model — Top Features")
 st.page_link("pages/4_Predict.py", label="🔮 Predict")
+st.page_link("pages/5_Metrics_Description.py", label="📚 Metrics Description")
