@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ewb
+      POSTGRES_PASSWORD: ewb
+      POSTGRES_DB: employee_wellbeing
+    ports:
+      # Exposed on the host so local scripts (seed.py, a DB client, psql)
+      # can connect directly at localhost:5432 without going through the
+      # api service — useful for checking loaded data while the api/
+      # frontend services don't exist yet (added in a later phase).
+      - "5449:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ewb -d employee_wellbeing"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:

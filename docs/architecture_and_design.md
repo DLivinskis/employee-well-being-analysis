@@ -66,9 +66,9 @@ If validation-set size feels too small once the actual splits are in hand, strat
 
 The final application ships as a `docker-compose.yml` with three services:
 
-- **`db`** — official `postgres` image. Holds the `employees` and `models` tables. Uses a named volume (e.g. `pgdata:/var/lib/postgresql/data`) so data persists across `docker compose down`/`up`.
-- **`api`** — the FastAPI service. On startup, it runs migrations/seed (create tables if missing, load the CSV into `employees` if empty) and loads whichever model artifacts `models` points to. Connects to `db` via the Compose network (e.g. `postgresql://user:pass@db:5432/...`), with credentials passed as environment variables rather than hardcoded.
-- **`frontend`** — the Streamlit app. Only talks to `api` over the Compose network (e.g. `http://api:8000`); never touches `db` or model artifacts directly.
+- **`db`** — official `postgres` image. Holds the `employees` and `models` tables. Uses a named volume (`pgdata:/var/lib/postgresql/data`) so data persists across `docker compose down`/`up`, and exposes port 5432 to the host so it can be inspected directly (`psql`, a DB client, or `training`/`api` scripts run outside Docker) rather than only being reachable from inside the Compose network. Introduced in Phase 3, ahead of `api`/`frontend`, specifically so seeded data could be verified manually before the rest of the app existed.
+- **`api`** — the FastAPI service (added in Phase 4/6). On startup, it runs migrations/seed (create tables if missing, load the CSV into `employees` if empty) and loads whichever model artifacts `models` points to. Connects to `db` via the Compose network (e.g. `postgresql://user:pass@db:5432/...`), with credentials passed as environment variables rather than hardcoded.
+- **`frontend`** — the Streamlit app (added in Phase 5/6). Only talks to `api` over the Compose network (e.g. `http://api:8000`); never touches `db` or model artifacts directly.
 
 Model artifact *files* (the serialized logistic/tree models the `models` table's paths point to) live on a volume mounted into `api` (e.g. `./data/models:/app/data/models`) — Postgres stores the metadata/importances, not the binary artifacts themselves.
 

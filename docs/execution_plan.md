@@ -47,10 +47,16 @@ employee-well-being-analysis/
 │   ├── __init__.py
 │   ├── main.py                  # FastAPI app + router registration
 │   ├── config.py                # env-based settings (DB URL, model artifact dir)
-│   ├── database.py              # SQLAlchemy engine/session
-│   ├── db_models.py              # ORM models: Employee, TrainedModel
+│   ├── database/
+│   │   ├── __init__.py           # re-exports Database, DatabaseSeeder
+│   │   ├── connection.py         # Database: SQLAlchemy engine/session
+│   │   ├── seed.py               # DatabaseSeeder: loads CSV + metadata.json
+│   │   └── models/
+│   │       ├── __init__.py       # re-exports Base, Employee, TrainedModel
+│   │       ├── base.py           # shared declarative Base
+│   │       ├── employee.py       # Employee ORM model
+│   │       └── trained_model.py  # TrainedModel ORM model
 │   ├── schemas.py                # Pydantic request/response models
-│   ├── seed.py                   # loads CSV into `employees` table if empty
 │   ├── inference.py               # loads model artifacts, runs prediction
 │   └── routers/
 │       ├── __init__.py
@@ -93,10 +99,12 @@ employee-well-being-analysis/
 - [ ] `evaluation.py`: shared functions for confusion matrix, per-class ROC/AUC, and macro-F1, given a fitted model and a DataFrame split — used identically for both models so their metrics are directly comparable.
 - [ ] `run_training.py`: orchestrates the above, serializes both fitted pipelines to `data/models/`, and writes/updates the corresponding rows in the `models` table (metrics + importances + artifact path).
 
-### Phase 3 — Database layer (`api/database.py`, `api/db_models.py`, `api/seed.py`)
-- [ ] `db_models.py`: SQLAlchemy models for `employees` (mirrors CSV columns, `Employee_ID` unique/primary key so `POST /employees` can't create duplicates) and `models` (name, version, trained_at, artifact_path, feature_importance JSON, confusion_matrix JSON, roc_auc JSON).
-- [ ] `database.py`: engine/session setup reading the DB URL from `api/config.py`.
-- [ ] `seed.py`: idempotent — creates tables if missing, loads the CSV into `employees` only if the table is empty; called once at API startup. Only seeds initial contents — later inserts via `POST /employees` are untouched by re-running this.
+### Phase 3 — Database layer (`api/database/`)
+- [ ] `models/employee.py`, `models/trained_model.py`: one SQLAlchemy model per file — `Employee` (mirrors CSV columns, `employee_id` primary key so `POST /employees` can't create duplicates) and `TrainedModel` (name as primary key, trained_at, artifact_path, feature_importance JSON, confusion_matrix JSON, roc_auc JSON).
+- [ ] `models/base.py`: shared declarative `Base` both models inherit from.
+- [ ] `connection.py`: `Database` class — engine/session factory, reading the DB URL from `api/config.py`.
+- [ ] `seed.py`: `DatabaseSeeder` — idempotent; creates tables if missing, loads the CSV into `employees` only if the table is empty; called once at API startup. Only seeds initial contents — later inserts via `POST /employees` are untouched by re-running this.
+- [x] `docker-compose.yml`: `db` service only for now (postgres + named volume + healthcheck + port 5432 exposed to the host), added early so seeded data can be checked manually (`psql`, a DB client) before `api`/`frontend` exist. `api`/`frontend` services are added in Phase 6.
 
 ### Phase 4 — FastAPI backend (`api/`)
 - [ ] `schemas.py`: Pydantic models for employee response/create request, predict request/response, and analysis responses (coefficients/importances + confusion matrix + ROC/AUC).
@@ -117,7 +125,7 @@ employee-well-being-analysis/
 ### Phase 6 — Dockerization
 - [ ] `docker/api.Dockerfile`: installs `training`+`api` dependencies, copies `training/` and `api/`, runs `uvicorn api.main:app`.
 - [ ] `docker/frontend.Dockerfile`: installs `frontend` dependencies, copies `frontend/`, runs `streamlit run frontend/Home.py`.
-- [ ] `docker-compose.yml`: `db` (postgres + named volume + healthcheck), `api` (depends_on db healthy, env vars for DB URL, volume for `data/models`), `frontend` (depends_on api, env var for API base URL).
+- [ ] `docker-compose.yml`: add `api` (depends_on db healthy, env vars for DB URL, volume for `data/models`) and `frontend` (depends_on api, env var for API base URL) to the existing `db` service from Phase 3.
 - [ ] Run `run_training.py` locally once to produce `data/models/` artifacts and populate `models` table before first `docker compose up` (or add it as a one-off `docker compose run` step — decide when this phase is reached).
 
 ### Phase 7 — End-to-end check
