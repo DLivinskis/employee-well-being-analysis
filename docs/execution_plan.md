@@ -34,12 +34,14 @@ employee-well-being-analysis/
 │   └── Impact_of_Remote_Work_on_Mental_Health.csv
 ├── training/
 │   ├── __init__.py
-│   ├── config.py                # paths, DB URL, random seed, split ratios
-│   ├── data_split.py            # stratified train/val/test split
-│   ├── preprocessing.py         # encoders shared by both models
-│   ├── evaluation.py            # confusion matrix, ROC/AUC, macro-F1
-│   ├── train_logistic.py        # fits + serializes the logistic model
-│   ├── train_tree.py            # fits + serializes the tree model
+│   ├── helpers/                  # supporting building blocks, not entry points themselves
+│   │   ├── __init__.py
+│   │   ├── config.py             # paths, DB URL, random seed, split ratios
+│   │   ├── data_split.py         # stratified train/val/test split
+│   │   ├── preprocessing.py      # encoders shared by both models
+│   │   └── evaluation.py         # confusion matrix, ROC/AUC, macro-F1
+│   ├── train_logistic.py        # fits the logistic model, reports coefficients
+│   ├── train_tree.py            # fits the tree model, reports permutation importance
 │   └── run_training.py          # entry point: split -> train both -> evaluate -> write artifacts + models-table rows
 ├── api/
 │   ├── __init__.py
