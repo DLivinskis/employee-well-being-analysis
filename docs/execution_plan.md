@@ -11,6 +11,7 @@ Every Python file in this plan (`training/`, `api/`, `frontend/`, `exploratory_a
 - Google-style docstrings (summary, Args, Returns, Raises) on every function and class.
 - Multi-step logic (e.g. `run_training.py`'s orchestration, `evaluation.py`'s metric computation, the FastAPI inference loader) is implemented as a class, not one large function: each distinct step (split data, fit encoder, compute one metric, build one table) becomes its own small, private `_`-prefixed method that can be called and unit-tested in isolation. The class's public entry-point method(s) then just orchestrate those small methods in sequence — the entry point is a thin composition of already-tested building blocks, not where the actual logic lives. The class docstring lists these entry points explicitly (which methods the caller is meant to use directly), while the `_` helpers stay internal and undocumented there.
 - Inline comments only for non-obvious WHY (hidden constraints, workarounds), plus brief explanations wherever a non-trivial Python concept (generators, decorators, comprehensions, context managers, etc.) is used.
+- Constants and variables that belong to a class's logic live on the class (class attributes, or instance attributes set in `__init__`), not as bare module-level globals — keeps everything the class depends on in one place next to the methods that use it, and makes it overridable per-instance/subclass instead of shared mutable module state.
 
 ## 1. Target repo structure
 
