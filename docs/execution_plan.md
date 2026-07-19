@@ -54,7 +54,7 @@ employee-well-being-analysis/
 │   ├── inference.py               # loads model artifacts, runs prediction
 │   └── routers/
 │       ├── __init__.py
-│       ├── employees.py          # GET /employees/{employee_id}
+│       ├── employees.py          # GET /employees/{employee_id}, POST /employees
 │       ├── predict.py            # POST /predict
 │       └── analysis.py           # GET /analysis/*
 ├── frontend/
@@ -94,24 +94,24 @@ employee-well-being-analysis/
 - [ ] `run_training.py`: orchestrates the above, serializes both fitted pipelines to `data/models/`, and writes/updates the corresponding rows in the `models` table (metrics + importances + artifact path).
 
 ### Phase 3 — Database layer (`api/database.py`, `api/db_models.py`, `api/seed.py`)
-- [ ] `db_models.py`: SQLAlchemy models for `employees` (mirrors CSV columns) and `models` (name, version, trained_at, artifact_path, feature_importance JSON, confusion_matrix JSON, roc_auc JSON).
+- [ ] `db_models.py`: SQLAlchemy models for `employees` (mirrors CSV columns, `Employee_ID` unique/primary key so `POST /employees` can't create duplicates) and `models` (name, version, trained_at, artifact_path, feature_importance JSON, confusion_matrix JSON, roc_auc JSON).
 - [ ] `database.py`: engine/session setup reading the DB URL from `api/config.py`.
-- [ ] `seed.py`: idempotent — creates tables if missing, loads the CSV into `employees` only if the table is empty; called once at API startup.
+- [ ] `seed.py`: idempotent — creates tables if missing, loads the CSV into `employees` only if the table is empty; called once at API startup. Only seeds initial contents — later inserts via `POST /employees` are untouched by re-running this.
 
 ### Phase 4 — FastAPI backend (`api/`)
-- [ ] `schemas.py`: Pydantic models for employee response, predict request/response, and analysis responses (coefficients/importances + confusion matrix + ROC/AUC).
+- [ ] `schemas.py`: Pydantic models for employee response/create request, predict request/response, and analysis responses (coefficients/importances + confusion matrix + ROC/AUC).
 - [ ] `inference.py`: loads the two serialized pipelines once at startup; exposes a `predict(features) -> {label, class_probabilities}` function per model type used by `/predict`.
-- [ ] `routers/employees.py`: `GET /employees/{employee_id}`.
+- [ ] `routers/employees.py`: `GET /employees/{employee_id}` (404 if not found) and `POST /employees` (insert a new row, reject on duplicate `Employee_ID`) — this is what makes "predict for an employee outside the original CSV" a real, working path rather than a hypothetical.
 - [ ] `routers/predict.py`: `POST /predict`.
 - [ ] `routers/analysis.py`: `GET /analysis/descriptive` (calls `exploratory_analysis/descriptive_stats.py` against the `employees` table), `GET /analysis/logistic-importance`, `GET /analysis/tree-importance`.
 - [ ] `main.py`: app instance, calls `seed.py` and `inference.py` startup hooks, registers routers.
 
 ### Phase 5 — Streamlit frontend (`frontend/`)
-- [ ] `api_client.py`: thin functions wrapping each API call (`get_employee`, `predict`, `get_descriptive`, `get_logistic_importance`, `get_tree_importance`), API base URL from an environment variable.
+- [ ] `api_client.py`: thin functions wrapping each API call (`get_employee`, `create_employee`, `predict`, `get_descriptive`, `get_logistic_importance`, `get_tree_importance`), API base URL from an environment variable.
 - [ ] `pages/1_Descriptive_Analysis.py`: charts from `/analysis/descriptive`.
 - [ ] `pages/2_Logistic_Model_Features.py`: coefficients + confusion matrix + ROC/AUC from `/analysis/logistic-importance`.
 - [ ] `pages/3_Tree_Model_Features.py`: importances + confusion matrix + ROC/AUC from `/analysis/tree-importance`.
-- [ ] `pages/4_Predict.py`: client-ID lookup (pre-fills form via `/employees/{id}`) or manual entry, both ending in a call to `/predict`.
+- [ ] `pages/4_Predict.py`: client-ID lookup (pre-fills form via `/employees/{id}`, offers to save via `POST /employees` if the ID doesn't exist yet) or manual entry, both ending in a call to `/predict`.
 - [ ] `Home.py`: landing page linking to the four pages.
 
 ### Phase 6 — Dockerization

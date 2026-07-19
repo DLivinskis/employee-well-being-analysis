@@ -23,6 +23,7 @@ Each of the three model pages and the descriptive page calls the FastAPI backend
 Owns all data access and model inference. Candidate endpoints:
 
 - `GET /employees/{employee_id}` — return stored feature values for a given employee (backs the "fetch by client ID" flow).
+- `POST /employees` — add a new employee record (simulates a new hire appearing after the initial CSV import); the new row becomes immediately fetchable via `GET /employees/{employee_id}` and eligible for prediction by ID.
 - `POST /predict` — accept a feature set (whether fetched by ID or entered manually), return `{label, class_probabilities}`.
 - `GET /analysis/descriptive` — summary stats / distributions backing the descriptive-analysis page.
 - `GET /analysis/logistic-importance` — logistic model's ranked coefficients, confusion matrix, and ROC curve/AUC.
@@ -34,10 +35,17 @@ The trained model artifacts (logistic + tree) are loaded once at service startup
 
 A dedicated `db` service, with (at least) two tables:
 
-- **`employees`** — the raw CSV loaded once at setup time, one row per `Employee_ID`. Backs `GET /employees/{employee_id}`.
+- **`employees`** — seeded from the raw CSV once at setup time, one row per `Employee_ID`, but treated as a *live, growing* table rather than a frozen snapshot: `POST /employees` inserts new rows for employees that never existed in the CSV. Backs `GET /employees/{employee_id}` and `POST /employees`.
 - **`models`** — metadata about each trained model: name/type (`logistic`, `tree`), version/trained-at timestamp, path to its serialized artifact, its ranked feature-importance values, and its evaluation metrics — confusion matrix and ROC curve/AUC (per class, given the 3-class target) — all stored e.g. as JSON columns, so `/analysis/logistic-importance`, `/analysis/tree-importance`, and a model-evaluation endpoint are simple reads rather than recomputation on every request.
 
 Only the FastAPI service talks to Postgres directly; the Streamlit app always goes through the API.
+
+**What the database is (and isn't) for.** Model inference itself never touches Postgres — once a trained pipeline's artifact is loaded into memory, `predict()` only needs the feature values it's called with. But `employees` is now a genuine dependency of the *predict-by-ID* flow specifically, not just a cache of the CSV:
+
+- **`employees`** is the operational store of who can be looked up by ID. The CSV only seeds its initial contents; `POST /employees` is how the app simulates a new employee showing up after that point (a new hire, someone not in the original Kaggle export) and immediately being predictable by ID. This is exactly the case a static CSV handles poorly — appending a row safely under concurrent access, enforcing that `Employee_ID` stays unique, and serving a keyed lookup all need more than "open the file and scan it." A real database is what makes "predict for an employee who didn't exist when the app was built" a first-class, safe operation instead of a file-rewrite hack.
+- **`models`** exists so the analysis pages (coefficients, importances, confusion matrix, ROC/AUC) are cheap reads of *already-computed* results, rather than the API recomputing statistics on every request. This one remains closer to a pure cache — it isn't part of any read/write growth story the way `employees` is.
+
+So the database isn't part of the ML computation itself, but `employees` is a real, load-bearing part of the *product* — it's what lets "predict for employee X" mean something for X's the original dataset never saw.
 
 ## 2. Train / validation / test split
 
