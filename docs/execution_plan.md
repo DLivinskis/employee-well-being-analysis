@@ -76,7 +76,8 @@ employee-well-being-analysis/
 │       ├── 2_Logistic_Model_Features.py
 │       ├── 3_Tree_Model_Features.py
 │       └── 4_Predict.py
-└── docker/
+└── docker_images/
+    ├── trainer.Dockerfile    # one-shot: trains models, writes data/models/
     ├── api.Dockerfile
     └── frontend.Dockerfile
 ```
@@ -132,12 +133,13 @@ employee-well-being-analysis/
 Verified with Streamlit's `AppTest` harness (executes each page script for real, against the live API): all four pages plus `Home.py` render with zero exceptions; drove the Predict page's actual submit flow (ID lookup → pre-filled form → submit) end-to-end and got back a real prediction.
 
 ### Phase 6 — Dockerization
-- [x] `docker/api.Dockerfile`: copies `api/`, `exploratory_analysis/` (needed by the analysis router), and `raw_data/` (needed by `seed.py`); runs `uvicorn api.main:app`. Verified `training/` is **not** needed in this image — a pickled pipeline unpickles to plain scikit-learn objects with no reference back to that package (checked by unpickling `logistic.joblib` in a directory with no `training/` present).
-- [x] `docker/frontend.Dockerfile`: copies only `frontend/`, runs `streamlit run frontend/Home.py`.
+- [x] `docker_images/api.Dockerfile`: copies `api/`, `exploratory_analysis/` (needed by the analysis router), and `raw_data/` (needed by `seed.py`); runs `uvicorn api.main:app`. Verified `training/` is **not** needed in this image — a pickled pipeline unpickles to plain scikit-learn objects with no reference back to that package (checked by unpickling `logistic.joblib` in a directory with no `training/` present).
+- [x] `docker_images/frontend.Dockerfile`: copies only `frontend/`, runs `streamlit run frontend/Home.py`.
 - [x] Both Dockerfiles use the `ghcr.io/astral-sh/uv` base image and a single `uv sync --frozen --no-dev` layer (ordered before the source `COPY` so dependency installs stay cached across code edits); no dependency-group split between images — the full lockfile is installed in both, a deliberate simplicity-over-image-size tradeoff at this project's scale.
-- [x] `docker-compose.yml`: added `api` (`depends_on: db, condition: service_healthy`; `DATABASE_URL` pointed at the internal `db:5432` address, distinct from the host-facing `localhost:5449` mapping; `./data:/app/data` volume for model artifacts + metadata) and `frontend` (`depends_on: api`; `API_BASE_URL=http://api:8000`) alongside the existing `db` service.
+- [x] `docker_images/trainer.Dockerfile`: one-shot — copies `training/` + `raw_data/`, runs `training.run_training` unless `data/models/metadata.json` already exists on the shared volume (skip-if-done, so repeat `docker compose up` runs don't retrain). This is the *only* image that needs `training/`.
+- [x] `docker-compose.yml`: `trainer` (no `depends_on` — training only reads the CSV/writes local files, no DB needed); `api` (`depends_on: db condition: service_healthy` **and** `trainer condition: service_completed_successfully`; `DATABASE_URL` pointed at the internal `db:5432` address, distinct from the host-facing `localhost:5449` mapping; `./data:/app/data` volume shared with `trainer`); `frontend` (`depends_on: api`; `API_BASE_URL=http://api:8000`) — four services total alongside the existing `db`.
 - [x] `.dockerignore`: excludes `.venv/`, `.git/`, `__pycache__/`, and `data/` (a volume mount, not something to bake into the image) from the build context.
-- [x] `data/models/` artifacts already existed on the host from Phase 2/3 testing, so no separate one-off training step was needed before first `docker compose up` — noted here as the prerequisite for anyone running this fresh.
+- [x] Verified the actual goal — a brand-new clone needs exactly one command: ran `docker compose down -v`, deleted `data/`, then `docker compose up -d --build` from scratch. `trainer` trained both models and exited 0, `api` correctly waited for it (`service_completed_successfully`) before starting, and the full stack came up working with zero manual host-side steps. Re-ran `trainer` a second time and confirmed it skipped retraining (checked via timestamped logs).
 
 ### Phase 7 — End-to-end check
 - [x] `docker compose up`, confirm all three services healthy.

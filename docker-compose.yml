@@ -19,31 +19,42 @@ services:
       timeout: 5s
       retries: 5
 
+  trainer:
+    build:
+      context: .
+      dockerfile: docker_images/trainer.Dockerfile
+    volumes:
+      # Same volume api mounts below — trainer writes the artifacts api
+      # then reads. Doesn't touch Postgres at all (run_training.py only
+      # reads the CSV and writes local files), so it has no `depends_on`.
+      - ./data:/app/data
+
   api:
     build:
       context: .
-      dockerfile: docker/api.Dockerfile
+      dockerfile: docker_images/api.Dockerfile
     environment:
       # Internal Compose network address/port — distinct from the
       # host-facing "localhost:5449" mapping above, which only exists for
       # connecting from outside Docker.
       DATABASE_URL: postgresql+psycopg://ewb:ewb@db:5432/employee_wellbeing
     volumes:
-      # Model artifacts + metadata.json are produced by
-      # `training/run_training.py` run on the host, not baked into the
-      # image — mounted so the container reads whatever the host most
-      # recently trained.
+      # Model artifacts + metadata.json are produced by the trainer
+      # service into this same volume, not baked into the image — mounted
+      # so the container reads whatever trainer most recently produced.
       - ./data:/app/data
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      trainer:
+        condition: service_completed_successfully
 
   frontend:
     build:
       context: .
-      dockerfile: docker/frontend.Dockerfile
+      dockerfile: docker_images/frontend.Dockerfile
     environment:
       API_BASE_URL: http://api:8000
     ports:

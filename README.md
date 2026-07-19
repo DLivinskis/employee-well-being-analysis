@@ -4,6 +4,7 @@ A data product built on the Kaggle "Remote Work and Mental Health" dataset, expl
 
 ## Documentation
 
+- [Running the App End-to-End](docs/running_the_app.md) — setup and run instructions, with `uv` or plain `pip` options
 - [Task Description](docs/task_description.md) — the original assignment brief
 - [AI-Suggested Approach](docs/ai_suggested_approach.md) — initial EDA plan, modeling strategy, and product-form ideas
 - [Architecture and Design](docs/architecture_and_design.md) — the actual interface and system design being built

@@ -64,13 +64,14 @@ If validation-set size feels too small once the actual splits are in hand, strat
 
 ## 3. Packaging — Docker Compose
 
-The final application ships as a `docker-compose.yml` with three services:
+The final application ships as a `docker-compose.yml` with four services, so a fresh clone runs end-to-end with a single `docker compose up -d --build` — no manual training or seeding step on the host:
 
 - **`db`** — official `postgres` image. Holds the `employees` and `models` tables. Uses a named volume (`pgdata:/var/lib/postgresql/data`) so data persists across `docker compose down`/`up`, and exposes port 5432 to the host so it can be inspected directly (`psql`, a DB client, or `training`/`api` scripts run outside Docker) rather than only being reachable from inside the Compose network. Introduced in Phase 3, ahead of `api`/`frontend`, specifically so seeded data could be verified manually before the rest of the app existed.
-- **`api`** — the FastAPI service (added in Phase 4/6). On startup, it runs migrations/seed (create tables if missing, load the CSV into `employees` if empty) and loads whichever model artifacts `models` points to. Connects to `db` via the Compose network (e.g. `postgresql://user:pass@db:5432/...`), with credentials passed as environment variables rather than hardcoded.
+- **`trainer`** — one-shot (added in Phase 6): runs `training/run_training.py`, writing `data/models/{logistic,tree}.joblib` + `metadata.json` to a volume shared with `api`. Skips retraining if those artifacts already exist, so repeat `docker compose up` runs are fast. It's the only image containing `training/` — every other service only ever touches the pickled output, never that package directly. Doesn't depend on `db` (training reads the CSV and writes local files only).
+- **`api`** — the FastAPI service (added in Phase 4/6). Waits for `db` to be healthy *and* `trainer` to exit successfully (`depends_on: condition: service_completed_successfully`) before starting. On startup, it runs migrations/seed (create tables if missing, load the CSV into `employees` if empty, load `trainer`'s metadata into `models`) and loads the model artifacts. Connects to `db` via the Compose network (e.g. `postgresql://user:pass@db:5432/...`), with credentials passed as environment variables rather than hardcoded.
 - **`frontend`** — the Streamlit app (added in Phase 5/6). Only talks to `api` over the Compose network (e.g. `http://api:8000`); never touches `db` or model artifacts directly.
 
-Model artifact *files* (the serialized logistic/tree models the `models` table's paths point to) live on a volume mounted into `api` (e.g. `./data/models:/app/data/models`) — Postgres stores the metadata/importances, not the binary artifacts themselves.
+Model artifact *files* (the serialized logistic/tree models the `models` table's paths point to) live on a volume shared between `trainer` (writer) and `api` (reader) — e.g. `./data:/app/data` — Postgres stores the metadata/importances, not the binary artifacts themselves.
 
 `depends_on` (with a `condition: service_healthy` healthcheck on `db`) ensures `api` waits for Postgres to actually be ready, not just for the container to start; `frontend` similarly depends on `api` and should still retry/backoff on its first calls while the API finishes its own startup (model loading takes longer than plain process start).
 
