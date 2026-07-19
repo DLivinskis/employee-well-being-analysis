@@ -14,7 +14,7 @@ import pandas as pd
 import requests
 import streamlit as st
 
-from frontend.api_client import ApiClient
+from api_client import ApiClient
 
 
 class PredictPage:

@@ -8,8 +8,8 @@ matrix / ROC-AUC visuals, from `GET /analysis/logistic-importance`.
 import pandas as pd
 import streamlit as st
 
-from frontend.api_client import ApiClient
-from frontend.helpers.model_analysis import ModelAnalysisView
+from api_client import ApiClient
+from helpers.model_analysis import ModelAnalysisView
 
 
 class LogisticFeaturesView(ModelAnalysisView):

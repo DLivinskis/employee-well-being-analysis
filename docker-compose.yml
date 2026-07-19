@@ -19,5 +19,37 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    environment:
+      # Internal Compose network address/port — distinct from the
+      # host-facing "localhost:5449" mapping above, which only exists for
+      # connecting from outside Docker.
+      DATABASE_URL: postgresql+psycopg://ewb:ewb@db:5432/employee_wellbeing
+    volumes:
+      # Model artifacts + metadata.json are produced by
+      # `training/run_training.py` run on the host, not baked into the
+      # image — mounted so the container reads whatever the host most
+      # recently trained.
+      - ./data:/app/data
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    environment:
+      API_BASE_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+
 volumes:
   pgdata:

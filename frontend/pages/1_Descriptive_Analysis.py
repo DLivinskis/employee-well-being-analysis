@@ -10,7 +10,7 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from frontend.api_client import ApiClient
+from api_client import ApiClient
 
 NUMERIC_SUMMARY_KEYS = {"mean", "std", "min", "25%", "50%", "75%", "max"}
 
